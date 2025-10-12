@@ -4,11 +4,10 @@ import de.greenoid.game.pentomino.model.GameState;
 import de.greenoid.game.pentomino.model.PentominoPiece;
 import de.greenoid.game.pentomino.model.ComputerStrategy;
 import de.greenoid.game.pentomino.model.ComputerStrategyRandom;
+import de.greenoid.game.pentomino.model.ComputerStrategyOpenSpace;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 
 /**
  * Main game window for the Pentomino game.
@@ -21,6 +20,7 @@ public class PentominoGame extends JFrame {
     private JLabel currentPlayerLabel;
     private JButton newGameButton;
     private JButton undoButton;
+    private JComboBox<String> strategySelector;
     private ComputerStrategy computerStrategy;
 
     public PentominoGame() {
@@ -31,7 +31,8 @@ public class PentominoGame extends JFrame {
 
     private void initializeGame() {
         gameState = new GameState();
-        computerStrategy = new ComputerStrategyRandom();
+        // Default to Open Space Strategy with 3 iterations (balanced difficulty)
+        computerStrategy = new ComputerStrategyOpenSpace(3);
     }
 
 
@@ -69,25 +70,33 @@ public class PentominoGame extends JFrame {
         undoButton = new JButton("Undo Move");
         JButton quitButton = new JButton("Quit Game");
 
+        // Add strategy selector
+        panel.add(new JLabel("AI Strategy:"));
+        strategySelector = new JComboBox<>(new String[]{
+            "Random Strategy",
+            "Open Space (Easy - 1 iteration)",
+            "Open Space (Medium - 3 iterations)",
+            "Open Space (Hard - 5 iterations)"
+        });
+        strategySelector.setSelectedIndex(2); // Default to Medium
+        panel.add(strategySelector);
+
         panel.add(newGameButton);
         panel.add(undoButton);
         panel.add(quitButton);
 
         // Add quit button event handler
-        quitButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                int result = JOptionPane.showConfirmDialog(
-                    PentominoGame.this,
-                    "Are you sure you want to quit?",
-                    "Quit Game",
-                    JOptionPane.YES_NO_OPTION,
-                    JOptionPane.QUESTION_MESSAGE
-                );
+        quitButton.addActionListener(e -> {
+            int result = JOptionPane.showConfirmDialog(
+                PentominoGame.this,
+                "Are you sure you want to quit?",
+                "Quit Game",
+                JOptionPane.YES_NO_OPTION,
+                JOptionPane.QUESTION_MESSAGE
+            );
 
-                if (result == JOptionPane.YES_OPTION) {
-                    System.exit(0);
-                }
+            if (result == JOptionPane.YES_OPTION) {
+                System.exit(0);
             }
         });
 
@@ -114,19 +123,31 @@ public class PentominoGame extends JFrame {
     }
 
     private void setupEventHandlers() {
-        newGameButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                newGame();
-            }
-        });
+        newGameButton.addActionListener(e -> newGame());
+        undoButton.addActionListener(e -> undoMove());
+        strategySelector.addActionListener(e -> updateStrategy());
+    }
 
-        undoButton.addActionListener(new ActionListener() {
-            @Override
-            public void actionPerformed(ActionEvent e) {
-                undoMove();
+    /**
+     * Updates the computer strategy based on the selected option.
+     */
+    private void updateStrategy() {
+        String selected = (String) strategySelector.getSelectedItem();
+        
+        if (selected != null) {
+            if (selected.startsWith("Random")) {
+                computerStrategy = new ComputerStrategyRandom();
+            } else if (selected.contains("Easy")) {
+                computerStrategy = new ComputerStrategyOpenSpace(1);
+            } else if (selected.contains("Medium")) {
+                computerStrategy = new ComputerStrategyOpenSpace(3);
+            } else if (selected.contains("Hard")) {
+                computerStrategy = new ComputerStrategyOpenSpace(5);
             }
-        });
+            
+            // Update status to show the new strategy
+            statusLabel.setText("Strategy changed to: " + computerStrategy.getStrategyName());
+        }
     }
 
     private void newGame() {
@@ -215,42 +236,32 @@ public class PentominoGame extends JFrame {
         currentPlayerLabel.setText("Computer's turn");
 
         // Use SwingUtilities.invokeLater to make computer move after UI updates
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    // Small delay to show "Computer is thinking" message
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                }
-
-                // Make computer move
-                boolean moveMade = gameState.makeComputerMove(computerStrategy);
-
-                // Update UI after computer move
-                SwingUtilities.invokeLater(new Runnable() {
-                    @Override
-                    public void run() {
-                        // Check if computer can make another move after this move
-                        gameState.checkCurrentPlayerMoves();
-
-                        gameBoardPanel.repaint();
-                        piecePanel.updateAvailablePieces();
-                        updateStatusDisplay();
-
-                        // If no move was made, show appropriate message
-                        if (!moveMade && gameState.getStatus() == GameState.GameStatus.PLAYING) {
-                            statusLabel.setText("Computer cannot move!");
-                        }
-                    }
-                });
+        SwingUtilities.invokeLater(() -> {
+            try {
+                // Small delay to show "Computer is thinking" message
+                Thread.sleep(500);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
             }
-        });
-    }
 
-    public GameState getGameState() {
-        return gameState;
+            // Make computer move
+            boolean moveMade = gameState.makeComputerMove(computerStrategy);
+
+            // Update UI after computer move
+            SwingUtilities.invokeLater(() -> {
+                // Check if computer can make another move after this move
+                gameState.checkCurrentPlayerMoves();
+
+                gameBoardPanel.repaint();
+                piecePanel.updateAvailablePieces();
+                updateStatusDisplay();
+
+                // If no move was made, show appropriate message
+                if (!moveMade && gameState.getStatus() == GameState.GameStatus.PLAYING) {
+                    statusLabel.setText("Computer cannot move!");
+                }
+            });
+        });
     }
 
     /**
@@ -262,11 +273,6 @@ public class PentominoGame extends JFrame {
     }
 
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(new Runnable() {
-            @Override
-            public void run() {
-                new PentominoGame().setVisible(true);
-            }
-        });
+        SwingUtilities.invokeLater(() -> new PentominoGame().setVisible(true));
     }
 }
