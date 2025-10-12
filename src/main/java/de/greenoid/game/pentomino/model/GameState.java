@@ -102,11 +102,11 @@ public class GameState {
         Move move = new Move(currentPlayer, piece, row, col);
         moveHistory.add(move);
 
-        // Check for game end
-        checkGameEnd();
-
         // Switch to next player
         currentPlayer = (currentPlayer == Player.PLAYER_1) ? Player.PLAYER_2 : Player.PLAYER_1;
+
+        // Check for game end
+        checkGameEnd();
 
         return true;
     }
