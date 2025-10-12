@@ -23,6 +23,7 @@ public class GameBoardPanel extends JPanel {
     private PentominoPiece selectedPiece;
     private PentominoPiece previewPiece;
     private Point previewPosition;
+    private boolean isDarkMode = false;
 
     public GameBoardPanel(GameState gameState) {
         this.gameState = gameState;
@@ -39,6 +40,20 @@ public class GameBoardPanel extends JPanel {
         setPreferredSize(new Dimension(BOARD_SIZE, BOARD_SIZE));
         setBackground(new Color(240, 240, 240));
         setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+    }
+    
+    /**
+     * Set dark mode for the board panel.
+     */
+    public void setDarkMode(boolean darkMode) {
+        this.isDarkMode = darkMode;
+        if (darkMode) {
+            setBackground(new Color(20, 20, 20));
+            setBorder(BorderFactory.createLineBorder(new Color(80, 80, 80), 2));
+        } else {
+            setBackground(new Color(240, 240, 240));
+            setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
+        }
     }
 
     private void setupMouseListener() {
@@ -214,7 +229,7 @@ public class GameBoardPanel extends JPanel {
     }
 
     private void drawGrid(Graphics2D g2d) {
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(isDarkMode ? new Color(60, 60, 60) : Color.BLACK);
 
         // Draw vertical lines
         for (int i = 0; i <= Board.SIZE; i++) {
@@ -247,12 +262,11 @@ public class GameBoardPanel extends JPanel {
         int y = row * SQUARE_SIZE + 1;
         int size = SQUARE_SIZE - 2;
 
-        // Fill with piece color
-        g2d.setColor(piece.getColor());
-        g2d.fillRect(x, y, size, size);
+        // Draw gradient square
+        drawGradientSquare(g2d, x, y, size, piece.getColor());
 
         // Draw border
-        g2d.setColor(Color.BLACK);
+        g2d.setColor(isDarkMode ? new Color(60, 60, 60) : Color.BLACK);
         g2d.drawRect(x, y, size, size);
 
         // Draw piece letter
@@ -266,6 +280,39 @@ public class GameBoardPanel extends JPanel {
         int textY = y + (size + fm.getAscent() - fm.getDescent()) / 2;
 
         g2d.drawString(letter, textX, textY);
+    }
+    
+    /**
+     * Draw a square with brightness gradient (brighter in center, darker at edges).
+     */
+    private void drawGradientSquare(Graphics2D g2d, int x, int y, int size, Color baseColor) {
+        // Create a radial gradient from center
+        float centerX = x + size / 2f;
+        float centerY = y + size / 2f;
+        float radius = size * 0.7f;
+        
+        // Create brighter center color
+        Color brighterColor = new Color(
+            Math.min(255, (int)(baseColor.getRed() * 1.4)),
+            Math.min(255, (int)(baseColor.getGreen() * 1.4)),
+            Math.min(255, (int)(baseColor.getBlue() * 1.4))
+        );
+        
+        // Create darker edge color
+        Color darkerColor = new Color(
+            (int)(baseColor.getRed() * 0.6),
+            (int)(baseColor.getGreen() * 0.6),
+            (int)(baseColor.getBlue() * 0.6)
+        );
+        
+        RadialGradientPaint gradient = new RadialGradientPaint(
+            centerX, centerY, radius,
+            new float[]{0.0f, 1.0f},
+            new Color[]{brighterColor, darkerColor}
+        );
+        
+        g2d.setPaint(gradient);
+        g2d.fillRect(x, y, size, size);
     }
 
     private void drawPreview(Graphics2D g2d) {
