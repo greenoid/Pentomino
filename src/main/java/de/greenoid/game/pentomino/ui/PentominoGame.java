@@ -19,7 +19,6 @@ public class PentominoGame extends JFrame {
     private JLabel statusLabel;
     private JLabel currentPlayerLabel;
     private JButton newGameButton;
-    private JButton undoButton;
     private JComboBox<String> strategySelector;
     private ComputerStrategy computerStrategy;
 
@@ -60,14 +59,13 @@ public class PentominoGame extends JFrame {
         // Set window properties
         pack();
         setLocationRelativeTo(null);
-        setMinimumSize(new Dimension(900, 700));
+        setMinimumSize(new Dimension(800, 650));
     }
 
     private JPanel createControlPanel() {
         JPanel panel = new JPanel(new FlowLayout());
 
         newGameButton = new JButton("New Game");
-        undoButton = new JButton("Undo Move");
         JButton quitButton = new JButton("Quit Game");
 
         // Add strategy selector
@@ -82,7 +80,6 @@ public class PentominoGame extends JFrame {
         panel.add(strategySelector);
 
         panel.add(newGameButton);
-        panel.add(undoButton);
         panel.add(quitButton);
 
         // Add quit button event handler
@@ -124,7 +121,6 @@ public class PentominoGame extends JFrame {
 
     private void setupEventHandlers() {
         newGameButton.addActionListener(e -> newGame());
-        undoButton.addActionListener(e -> undoMove());
         strategySelector.addActionListener(e -> updateStrategy());
     }
 
@@ -157,20 +153,6 @@ public class PentominoGame extends JFrame {
         gameBoardPanel.repaint();
         piecePanel.updateAvailablePieces();
         updateStatusDisplay();
-    }
-
-    private void undoMove() {
-        if (gameState.undoLastMove()) {
-            gameState.checkCurrentPlayerMoves(); // Check if current player can move after undo
-            gameBoardPanel.repaint();
-            piecePanel.updateAvailablePieces();
-            updateStatusDisplay();
-        } else {
-            JOptionPane.showMessageDialog(this,
-                "No moves to undo!",
-                "Undo",
-                JOptionPane.INFORMATION_MESSAGE);
-        }
     }
 
     private void updateStatusDisplay() {

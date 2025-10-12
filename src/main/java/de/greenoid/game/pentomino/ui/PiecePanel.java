@@ -13,7 +13,8 @@ import java.util.List;
  * Panel that displays the available pentomino pieces for selection.
  */
 public class PiecePanel extends JPanel {
-    private static final int PIECE_DISPLAY_SIZE = 80;
+    private static final int PIECE_DISPLAY_SIZE = 70;
+    private static final int CELL_SIZE = 12;
 
     private GameState gameState;
     private PentominoPiece selectedPiece;
@@ -27,7 +28,7 @@ public class PiecePanel extends JPanel {
     }
 
     private void setupPanel() {
-        setPreferredSize(new Dimension(350, 700));
+        setPreferredSize(new Dimension(280, 650));
         setBackground(new Color(250, 250, 250));
         setBorder(BorderFactory.createTitledBorder("Available Pieces"));
     }
@@ -207,9 +208,9 @@ public class PiecePanel extends JPanel {
         }
 
         int piecesPerRow = 3;
-        int pieceSpacing = 15;
-        int startX = 25;
-        int startY = 25;
+        int pieceSpacing = 10;
+        int startX = 15;
+        int startY = 20;
 
         for (int i = 0; i < availablePieces.size(); i++) {
             PentominoPiece piece = availablePieces.get(i);
@@ -225,27 +226,43 @@ public class PiecePanel extends JPanel {
     }
 
     private void drawPiece(Graphics2D g2d, PentominoPiece piece, int x, int y, boolean isSelected) {
+        // Calculate bounding box for the piece
+        int minX = Integer.MAX_VALUE, minY = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE, maxY = Integer.MIN_VALUE;
+        
+        for (de.greenoid.game.pentomino.model.Point point : piece.getShape()) {
+            minX = Math.min(minX, point.getX());
+            minY = Math.min(minY, point.getY());
+            maxX = Math.max(maxX, point.getX());
+            maxY = Math.max(maxY, point.getY());
+        }
+        
+        int pieceWidth = (maxX - minX + 1) * CELL_SIZE;
+        int pieceHeight = (maxY - minY + 1) * CELL_SIZE;
+        
+        // Center the piece in the display box
+        int offsetX = (PIECE_DISPLAY_SIZE - pieceWidth) / 2;
+        int offsetY = (PIECE_DISPLAY_SIZE - pieceHeight) / 2;
+        
         // Draw selection outline with appropriate color
-        g2d.setColor(isSelected ? Color.RED : Color.BLACK);
-        g2d.setStroke(new BasicStroke(isSelected ? 3 : 2));
-        g2d.drawRect(x - 5, y - 5, PIECE_DISPLAY_SIZE + 10, PIECE_DISPLAY_SIZE + 10);
+        g2d.setColor(isSelected ? Color.RED : Color.GRAY);
+        g2d.setStroke(new BasicStroke(isSelected ? 3 : 1));
+        g2d.drawRect(x - 3, y - 3, PIECE_DISPLAY_SIZE + 6, PIECE_DISPLAY_SIZE + 6);
         g2d.setStroke(new BasicStroke(1)); // Reset stroke
 
         // Draw piece squares
         for (de.greenoid.game.pentomino.model.Point point : piece.getShape()) {
-            int squareX = x + point.getX() * (PIECE_DISPLAY_SIZE / 5);
-            int squareY = y + point.getY() * (PIECE_DISPLAY_SIZE / 5);
-            int squareSize = PIECE_DISPLAY_SIZE / 5;
+            int squareX = x + offsetX + (point.getX() - minX) * CELL_SIZE;
+            int squareY = y + offsetY + (point.getY() - minY) * CELL_SIZE;
 
             // Fill with piece color
             g2d.setColor(piece.getColor());
-            g2d.fillRect(squareX, squareY, squareSize, squareSize);
+            g2d.fillRect(squareX, squareY, CELL_SIZE, CELL_SIZE);
 
             // Draw border
             g2d.setColor(Color.BLACK);
-            g2d.drawRect(squareX, squareY, squareSize, squareSize);
+            g2d.drawRect(squareX, squareY, CELL_SIZE, CELL_SIZE);
         }
-
     }
 
     private void drawNoPiecesMessage(Graphics2D g2d) {

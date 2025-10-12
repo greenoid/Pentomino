@@ -15,7 +15,7 @@ import java.util.List;
  * Panel that displays the 8x8 game board and handles piece placement.
  */
 public class GameBoardPanel extends JPanel {
-    private static final int SQUARE_SIZE = 50;
+    private static final int SQUARE_SIZE = 60;
     private static final int BOARD_SIZE = Board.SIZE * SQUARE_SIZE;
 
     private final GameState gameState;
