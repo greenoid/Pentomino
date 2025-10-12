@@ -282,7 +282,7 @@ public class PiecePanel extends JPanel {
             g2d.drawRect(squareX, squareY, CELL_SIZE, CELL_SIZE);
         }
         
-        // Draw piece letter at center bottom of bounding box
+        // Draw piece letter INSIDE the box at bottom center
         g2d.setColor(isDarkMode ? Color.LIGHT_GRAY : Color.DARK_GRAY);
         Font font = new Font(Font.SANS_SERIF, Font.BOLD, 10);
         g2d.setFont(font);
@@ -290,7 +290,7 @@ public class PiecePanel extends JPanel {
         FontMetrics fm = g2d.getFontMetrics();
         String letter = piece.getType().toString();
         int textX = x + (PIECE_DISPLAY_SIZE - fm.stringWidth(letter)) / 2;
-        int textY = y + PIECE_DISPLAY_SIZE + 2 + fm.getAscent();
+        int textY = y + PIECE_DISPLAY_SIZE - 3;
 
         g2d.drawString(letter, textX, textY);
     }

@@ -22,7 +22,7 @@ public class PentominoGame extends JFrame {
     private JComboBox<String> strategySelector;
     private JCheckBox darkModeToggle;
     private ComputerStrategy computerStrategy;
-    private boolean isDarkMode = false;
+    private boolean isDarkMode = true;
 
     public PentominoGame() {
         initializeGame();
@@ -45,6 +45,10 @@ public class PentominoGame extends JFrame {
         // Create main panels
         gameBoardPanel = new GameBoardPanel(gameState);
         piecePanel = new PiecePanel(gameState);
+        
+        // Set dark mode as default
+        gameBoardPanel.setDarkMode(true);
+        piecePanel.setDarkMode(true);
 
         // Create control panel
         JPanel controlPanel = createControlPanel();
@@ -57,6 +61,9 @@ public class PentominoGame extends JFrame {
         add(piecePanel, BorderLayout.EAST);
         add(controlPanel, BorderLayout.SOUTH);
         add(infoPanel, BorderLayout.NORTH);
+        
+        // Apply dark mode theme
+        updateTheme();
 
         // Set window properties
         pack();
@@ -70,8 +77,8 @@ public class PentominoGame extends JFrame {
         newGameButton = new JButton("New Game");
         JButton quitButton = new JButton("Quit Game");
         
-        // Add dark mode toggle
-        darkModeToggle = new JCheckBox("Dark Mode");
+        // Add dark mode toggle (selected by default)
+        darkModeToggle = new JCheckBox("Dark Mode", true);
         darkModeToggle.addActionListener(e -> toggleDarkMode());
         panel.add(darkModeToggle);
 
