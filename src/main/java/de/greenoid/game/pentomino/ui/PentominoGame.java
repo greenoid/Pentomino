@@ -5,6 +5,9 @@ import de.greenoid.game.pentomino.model.PentominoPiece;
 import de.greenoid.game.pentomino.model.ComputerStrategy;
 import de.greenoid.game.pentomino.model.ComputerStrategyRandom;
 import de.greenoid.game.pentomino.model.ComputerStrategyOpenSpace;
+import de.greenoid.game.pentomino.model.ComputerStrategyMinMax;
+import de.greenoid.game.pentomino.model.ComputerStrategyComposite;
+import de.greenoid.game.pentomino.model.ComputerStrategyMinMaxDynamic;
 
 import javax.swing.*;
 import java.awt.*;
@@ -22,23 +25,45 @@ public class PentominoGame extends JFrame {
     private JComboBox<String> strategySelector;
     private JCheckBox darkModeToggle;
     private ComputerStrategy computerStrategy;
+    private ComputerStrategy player1Strategy; // For computer-only mode
     private boolean isDarkMode = true;
+    private boolean computerOnlyMode = false;
+    private boolean isInitializing = true; // Flag to prevent strategy recreation during setup
 
     public PentominoGame() {
+        this(false);
+    }
+
+    public PentominoGame(boolean computerOnlyMode) {
+        this.computerOnlyMode = computerOnlyMode;
         initializeGame();
         setupUI();
         setupEventHandlers();
+        isInitializing = false; // Initialization complete
+        
+        if (computerOnlyMode) {
+            // Start the computer vs computer game
+            SwingUtilities.invokeLater(() -> playComputerOnlyGame());
+        }
     }
 
     private void initializeGame() {
         gameState = new GameState();
-        // Default to Open Space Strategy with 3 iterations (balanced difficulty)
-        computerStrategy = new ComputerStrategyOpenSpace(3);
+        // Default to MinMax Dynamic Strategy (best overall performance with adaptive depth)
+        computerStrategy = new ComputerStrategyMinMaxDynamic();
+        
+        if (computerOnlyMode) {
+            // In computer-only mode, player 1 also uses a strategy
+            player1Strategy = new ComputerStrategyMinMaxDynamic();
+        }
     }
 
 
     private void setupUI() {
-        setTitle("Pentomino Game - Human vs Computer");
+        String title = computerOnlyMode ?
+            "Pentomino Game - Computer vs Computer" :
+            "Pentomino Game - Human vs Computer";
+        setTitle(title);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
@@ -85,13 +110,23 @@ public class PentominoGame extends JFrame {
         // Add strategy selector
         panel.add(new JLabel("AI Strategy:"));
         strategySelector = new JComboBox<>(new String[]{
-            "Random Strategy",
+            "MinMax Dynamic (Recommended)",
+            "Composite Strategy",
+            "MinMax Only (Depth 2 - Fast)",
+            "MinMax Only (Depth 3 - Strong)",
             "Open Space (Easy - 1 iteration)",
             "Open Space (Medium - 3 iterations)",
-            "Open Space (Hard - 5 iterations)"
+            "Open Space (Hard - 5 iterations)",
+            "Random Strategy"
         });
-        strategySelector.setSelectedIndex(2); // Default to Medium
+        // Don't set selected index here - it will be set in setupEventHandlers
+        // to avoid triggering updateStrategy() during initialization
         panel.add(strategySelector);
+        
+        // Disable strategy selector in computer-only mode
+        if (computerOnlyMode) {
+            strategySelector.setEnabled(false);
+        }
 
         panel.add(newGameButton);
         panel.add(quitButton);
@@ -136,6 +171,8 @@ public class PentominoGame extends JFrame {
     private void setupEventHandlers() {
         newGameButton.addActionListener(e -> newGame());
         strategySelector.addActionListener(e -> updateStrategy());
+        // Set initial selection - updateStrategy() will check isInitializing flag
+        strategySelector.setSelectedIndex(0);
     }
     
     /**
@@ -163,23 +200,50 @@ public class PentominoGame extends JFrame {
 
     /**
      * Updates the computer strategy based on the selected option.
+     * Only creates a new instance if the strategy type is actually different.
      */
     private void updateStrategy() {
+        // Don't update during initialization to preserve the initial Composite instance
+        if (isInitializing) {
+            return;
+        }
+        
         String selected = (String) strategySelector.getSelectedItem();
         
         if (selected != null) {
-            if (selected.startsWith("Random")) {
-                computerStrategy = new ComputerStrategyRandom();
-            } else if (selected.contains("Easy")) {
-                computerStrategy = new ComputerStrategyOpenSpace(1);
-            } else if (selected.contains("Medium")) {
-                computerStrategy = new ComputerStrategyOpenSpace(3);
-            } else if (selected.contains("Hard")) {
-                computerStrategy = new ComputerStrategyOpenSpace(5);
+            // Only create new strategy if it's different from current type
+            boolean needsNewStrategy = true;
+            
+            if (selected.contains("MinMax Dynamic") &&
+                computerStrategy instanceof ComputerStrategyMinMaxDynamic) {
+                needsNewStrategy = false; // Keep same instance
+            } else if (selected.startsWith("Composite") &&
+                       computerStrategy instanceof ComputerStrategyComposite) {
+                needsNewStrategy = false; // Keep same instance
             }
             
-            // Update status to show the new strategy
-            statusLabel.setText("Strategy changed to: " + computerStrategy.getStrategyName());
+            if (needsNewStrategy) {
+                if (selected.contains("MinMax Dynamic")) {
+                    computerStrategy = new ComputerStrategyMinMaxDynamic();
+                } else if (selected.startsWith("Composite")) {
+                    computerStrategy = new ComputerStrategyComposite();
+                } else if (selected.contains("MinMax") && selected.contains("Depth 2")) {
+                    computerStrategy = new ComputerStrategyMinMax(2);
+                } else if (selected.contains("MinMax") && selected.contains("Depth 3")) {
+                    computerStrategy = new ComputerStrategyMinMax(3);
+                } else if (selected.contains("Easy")) {
+                    computerStrategy = new ComputerStrategyOpenSpace(1);
+                } else if (selected.contains("Medium")) {
+                    computerStrategy = new ComputerStrategyOpenSpace(3);
+                } else if (selected.contains("Hard")) {
+                    computerStrategy = new ComputerStrategyOpenSpace(5);
+                } else if (selected.startsWith("Random")) {
+                    computerStrategy = new ComputerStrategyRandom();
+                }
+                
+                // Update status to show the new strategy
+                statusLabel.setText("Strategy changed to: " + computerStrategy.getStrategyName());
+            }
         }
     }
 
@@ -195,21 +259,31 @@ public class PentominoGame extends JFrame {
     private void updateStatusDisplay() {
         switch (gameState.getStatus()) {
             case PLAYING:
-                if (gameState.getCurrentPlayer() == GameState.Player.PLAYER_1) {
-                    currentPlayerLabel.setText("Your turn");
-                    statusLabel.setText("Game in progress");
+                if (computerOnlyMode) {
+                    if (gameState.getCurrentPlayer() == GameState.Player.PLAYER_1) {
+                        currentPlayerLabel.setText("Computer 1's turn");
+                        statusLabel.setText("Computer 1 is thinking...");
+                    } else {
+                        currentPlayerLabel.setText("Computer 2's turn");
+                        statusLabel.setText("Computer 2 is thinking...");
+                    }
                 } else {
-                    currentPlayerLabel.setText("Computer's turn");
-                    statusLabel.setText("Computer is thinking...");
+                    if (gameState.getCurrentPlayer() == GameState.Player.PLAYER_1) {
+                        currentPlayerLabel.setText("Your turn");
+                        statusLabel.setText("Game in progress");
+                    } else {
+                        currentPlayerLabel.setText("Computer's turn");
+                        statusLabel.setText("Computer is thinking...");
+                    }
                 }
                 break;
             case PLAYER_1_WINS:
                 currentPlayerLabel.setText("Game Over");
-                statusLabel.setText("You win!");
+                statusLabel.setText(computerOnlyMode ? "Computer 1 wins!" : "You win!");
                 break;
             case PLAYER_2_WINS:
                 currentPlayerLabel.setText("Game Over");
-                statusLabel.setText("Computer wins!");
+                statusLabel.setText("Computer" + (computerOnlyMode ? " 2" : "") + " wins!");
                 break;
             case DRAW:
                 currentPlayerLabel.setText("Game Over");
@@ -231,8 +305,14 @@ public class PentominoGame extends JFrame {
      * Updates the display after a move is made.
      */
     public void onMoveMade() {
-        // Check if the human player (who just moved) has any legal moves left
+        // Check if the current player has any legal moves left
         gameState.checkCurrentPlayerMoves();
+
+        if (computerOnlyMode) {
+            // In computer-only mode, we don't need to do anything here
+            // The playComputerOnlyGame() method handles everything
+            return;
+        }
 
         // If game is still playing and it's now computer's turn, make computer move
         if (gameState.getStatus() == GameState.GameStatus.PLAYING &&
@@ -291,7 +371,78 @@ public class PentominoGame extends JFrame {
         piecePanel.repaint();
     }
 
+    /**
+     * Plays a computer vs computer game automatically.
+     * Continues until the game ends.
+     */
+    private void playComputerOnlyGame() {
+        new Thread(() -> {
+            while (gameState.getStatus() == GameState.GameStatus.PLAYING) {
+                try {
+                    // Small delay between moves for visibility
+                    Thread.sleep(1000);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
+                }
+
+                // Determine which strategy to use based on current player
+                ComputerStrategy currentStrategy =
+                    (gameState.getCurrentPlayer() == GameState.Player.PLAYER_1) ?
+                    player1Strategy : computerStrategy;
+
+                // Make the move
+                final boolean moveMade = gameState.makeComputerMove(currentStrategy);
+
+                // Update UI on EDT
+                SwingUtilities.invokeLater(() -> {
+                    gameState.checkCurrentPlayerMoves();
+                    gameBoardPanel.repaint();
+                    piecePanel.updateAvailablePieces();
+                    updateStatusDisplay();
+
+                    if (!moveMade && gameState.getStatus() == GameState.GameStatus.PLAYING) {
+                        statusLabel.setText("Computer cannot move!");
+                    }
+                });
+            }
+
+            // Game ended - show final message
+            SwingUtilities.invokeLater(() -> {
+                gameBoardPanel.repaint();
+                piecePanel.updateAvailablePieces();
+                updateStatusDisplay();
+                
+                System.out.println("Game ended: " + gameState.getStatus());
+                System.out.println("Winner: " + (gameState.getWinner() != null ?
+                    gameState.getWinner() : "Draw"));
+                
+                // Exit after 3 seconds
+                try {
+                    Thread.sleep(3000);
+                    System.exit(0);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    System.exit(0);
+                }
+            });
+        }).start();
+    }
+
     public static void main(String[] args) {
-        SwingUtilities.invokeLater(() -> new PentominoGame().setVisible(true));
+        // Check for -computeronly flag
+        boolean computerOnlyMode = false;
+        for (String arg : args) {
+            if ("-computeronly".equalsIgnoreCase(arg)) {
+                computerOnlyMode = true;
+                break;
+            }
+        }
+
+        final boolean finalMode = computerOnlyMode;
+        SwingUtilities.invokeLater(() -> {
+            PentominoGame game = new PentominoGame(finalMode);
+            game.setVisible(true);
+        });
     }
 }
