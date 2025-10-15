@@ -21,7 +21,7 @@ public class ComputerStrategyMinMaxTest {
     @Test
     public void testStrategyCreation() {
         assertNotNull(strategy, "Strategy should be created");
-        assertEquals("MinMax Strategy (depth=1)", strategy.getStrategyName());
+        assertEquals("MinMax Strategy (depth=1, parallel)", strategy.getStrategyName());
     }
 
     @Test

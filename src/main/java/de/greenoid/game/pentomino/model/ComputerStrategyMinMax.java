@@ -2,15 +2,19 @@ package de.greenoid.game.pentomino.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.*;
 
 /**
  * Advanced computer strategy using the minimax algorithm with alpha-beta pruning.
  * This strategy searches the game tree to find optimal moves by considering
  * potential opponent responses. It's most effective in endgame situations where
  * the search space is manageable.
- * 
+ *
  * <p>The algorithm uses a mobility-based heuristic to evaluate non-terminal positions,
  * preferring positions where the computer has more placement options than the opponent.
+ *
+ * <p>This implementation uses parallel processing to evaluate root-level moves
+ * concurrently across all available CPU cores for improved performance.
  */
 public class ComputerStrategyMinMax implements ComputerStrategy {
 
@@ -18,6 +22,7 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
     private int nodesEvaluated;
     private long startTime;
     private static final int MAX_THINKING_TIME_MS = 15000; // 15 seconds safety limit
+    private final ExecutorService executorService;
 
     /**
      * Creates a new MinMax strategy with the specified search depth.
@@ -30,6 +35,7 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
      */
     public ComputerStrategyMinMax(int maxDepth) {
         this.maxDepth = Math.max(1, Math.min(maxDepth, 5));
+        this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
     }
 
     /**
@@ -58,36 +64,54 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
 
         ComputerMove bestMove = null;
         int bestScore = Integer.MIN_VALUE;
-        int alpha = Integer.MIN_VALUE;
-        int beta = Integer.MAX_VALUE;
 
-        System.out.println("MinMax: Evaluating " + possibleMoves.size() + 
-                          " possible moves at depth " + maxDepth);
+        System.out.println("MinMax: Evaluating " + possibleMoves.size() +
+                          " possible moves at depth " + maxDepth +
+                          " using " + Runtime.getRuntime().availableProcessors() + " CPU cores");
 
-        // Evaluate each possible move
+        // Create futures for parallel evaluation of all root moves
+        List<Future<Integer>> futures = new ArrayList<>();
+        
         for (ComputerMove move : possibleMoves) {
-            // Check time limit
-            if (System.currentTimeMillis() - startTime > MAX_THINKING_TIME_MS) {
-                System.out.println("MinMax: Time limit reached, using best move so far");
-                break;
+            Callable<Integer> task = () -> {
+                // Make the move in a copy of the game state
+                GameState newState = new GameState(gameState);
+                newState.makeMove(move.getPiece(), move.getRow(), move.getCol());
+                
+                // Evaluate this move using minimax (opponent's turn next, so minimizing)
+                return minimax(newState, maxDepth - 1, Integer.MIN_VALUE, Integer.MAX_VALUE, false);
+            };
+            futures.add(executorService.submit(task));
+        }
+
+        // Collect results from all parallel tasks
+        try {
+            for (int i = 0; i < possibleMoves.size(); i++) {
+                // Check time limit
+                if (System.currentTimeMillis() - startTime > MAX_THINKING_TIME_MS) {
+                    System.out.println("MinMax: Time limit reached, using best move so far");
+                    break;
+                }
+                
+                ComputerMove move = possibleMoves.get(i);
+                int score = futures.get(i).get();
+
+                if (score > bestScore) {
+                    bestScore = score;
+                    bestMove = move;
+                }
             }
-
-            // Make the move in a copy of the game state
-            GameState newState = new GameState(gameState);
-            newState.makeMove(move.getPiece(), move.getRow(), move.getCol());
-
-            // Evaluate this move using minimax (opponent's turn next, so minimizing)
-            int score = minimax(newState, maxDepth - 1, alpha, beta, false);
-
-            if (score > bestScore) {
-                bestScore = score;
-                bestMove = move;
-                alpha = Math.max(alpha, score);
+        } catch (InterruptedException | ExecutionException e) {
+            System.err.println("MinMax: Error during parallel move calculation: " + e.getMessage());
+            e.printStackTrace();
+            // Fallback: if we have a best move so far, use it
+            if (bestMove == null && !possibleMoves.isEmpty()) {
+                bestMove = possibleMoves.get(0);
             }
         }
 
         long duration = System.currentTimeMillis() - startTime;
-        System.out.println("MinMax: Evaluated " + nodesEvaluated + 
+        System.out.println("MinMax: Evaluated " + nodesEvaluated +
                           " nodes in " + duration + "ms, best score: " + bestScore);
 
         return bestMove;
@@ -326,7 +350,7 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
 
     @Override
     public String getStrategyName() {
-        return "MinMax Strategy (depth=" + maxDepth + ")";
+        return "MinMax Strategy (depth=" + maxDepth + ", parallel)";
     }
 
     /**
@@ -335,5 +359,21 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
      */
     public int getNodesEvaluated() {
         return nodesEvaluated;
+    }
+
+    /**
+     * Shuts down the executor service. Should be called when the strategy
+     * is no longer needed to free up resources.
+     */
+    public void shutdown() {
+        executorService.shutdown();
+        try {
+            if (!executorService.awaitTermination(1, TimeUnit.SECONDS)) {
+                executorService.shutdownNow();
+            }
+        } catch (InterruptedException e) {
+            executorService.shutdownNow();
+            Thread.currentThread().interrupt();
+        }
     }
 }

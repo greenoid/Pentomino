@@ -160,7 +160,7 @@ public class ComputerStrategyMinMaxDynamic implements ComputerStrategy {
         } else {
             phaseName = "EARLY (depth " + depthEarly + ")";
         }
-        return "MinMax Dynamic [" + phaseName + "]";
+        return "MinMax Dynamic [" + phaseName + ", parallel]";
     }
     
     /**
@@ -205,6 +205,16 @@ public class ComputerStrategyMinMaxDynamic implements ComputerStrategy {
      */
     public int getEndSwitchMove() {
         return endSwitchMove;
+    }
+    
+    /**
+     * Shuts down all underlying executor services. Should be called when the strategy
+     * is no longer needed to free up resources.
+     */
+    public void shutdown() {
+        earlyStrategy.shutdown();
+        midStrategy.shutdown();
+        endStrategy.shutdown();
     }
     
     /**
