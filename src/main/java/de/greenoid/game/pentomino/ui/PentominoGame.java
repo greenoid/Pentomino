@@ -6,6 +6,7 @@ import de.greenoid.game.pentomino.model.ComputerStrategy;
 import de.greenoid.game.pentomino.model.ComputerStrategyRandom;
 import de.greenoid.game.pentomino.model.ComputerStrategyOpenSpace;
 import de.greenoid.game.pentomino.model.ComputerStrategyMinMax;
+import de.greenoid.game.pentomino.model.ComputerStrategyMinMaxDiffusion;
 import de.greenoid.game.pentomino.model.ComputerStrategyComposite;
 import de.greenoid.game.pentomino.model.ComputerStrategyMinMaxDynamic;
 
@@ -111,12 +112,11 @@ public class PentominoGame extends JFrame {
         panel.add(new JLabel("AI Strategy:"));
         strategySelector = new JComboBox<>(new String[]{
             "MinMax Dynamic (Recommended)",
+            "MinMax Diffusion (Experimental)",
             "Composite Strategy",
             "MinMax Only (Depth 2 - Fast)",
             "MinMax Only (Depth 3 - Strong)",
-            "Open Space (Easy - 1 iteration)",
             "Open Space (Medium - 3 iterations)",
-            "Open Space (Hard - 5 iterations)",
             "Random Strategy"
         });
         // Don't set selected index here - it will be set in setupEventHandlers
@@ -225,18 +225,16 @@ public class PentominoGame extends JFrame {
             if (needsNewStrategy) {
                 if (selected.contains("MinMax Dynamic")) {
                     computerStrategy = new ComputerStrategyMinMaxDynamic();
+                } else if (selected.contains("MinMax Diffusion")) {
+                    computerStrategy = new ComputerStrategyMinMaxDiffusion();
                 } else if (selected.startsWith("Composite")) {
                     computerStrategy = new ComputerStrategyComposite();
                 } else if (selected.contains("MinMax") && selected.contains("Depth 2")) {
                     computerStrategy = new ComputerStrategyMinMax(2);
                 } else if (selected.contains("MinMax") && selected.contains("Depth 3")) {
                     computerStrategy = new ComputerStrategyMinMax(3);
-                } else if (selected.contains("Easy")) {
-                    computerStrategy = new ComputerStrategyOpenSpace(1);
                 } else if (selected.contains("Medium")) {
                     computerStrategy = new ComputerStrategyOpenSpace(3);
-                } else if (selected.contains("Hard")) {
-                    computerStrategy = new ComputerStrategyOpenSpace(5);
                 } else if (selected.startsWith("Random")) {
                     computerStrategy = new ComputerStrategyRandom();
                 }
