@@ -46,7 +46,7 @@ java -jar target/Pentomino-1.0-SNAPSHOT.jar -computeronly
 ## Building from Source
 
 ### Prerequisites
-- Java 21 or higher
+- Java 11 or higher
 - Maven 3.6 or higher
 
 ### Build Commands
