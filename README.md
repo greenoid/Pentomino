@@ -202,20 +202,17 @@ Pentomino/
 
 ### User Guides
 - **[Main Strategy Guide](README-STRATEGIES.md)**: Complete guide to all strategies
-- **[MinMax & Composite Guide](doc/README-MinMax-Composite.md)**: Usage instructions for advanced strategies
 - **[Game Modes](doc/GAME-MODES.md)**: Human vs Computer and Computer vs Computer modes
 - **[OpenSpace Strategy](doc/README-OpenSpaceStrategy.md)**: Diffusion algorithm details
 - **[Game Rules](doc/rules.md)**: How to play Pentomino
 
 ### Technical Documentation
 - **[Architecture](doc/architecture.md)**: System design and component structure
-- **[MinMax/Composite Design](doc/minmax-composite-strategy-design.md)**: Technical design document
 - **[Implementation Plan](doc/implementation-plan.md)**: Development roadmap and specifications
 - **[Implementation Guide](doc/implementation-guide.md)**: Original specifications
 - **[Strategy Testing Guide](doc/strategy-testing-guide.md)**: How to test and compare strategies
 
 ### Implementation Summary
-- **[Test Results](doc/TEST-RESULTS.md)**: Comprehensive test results (26 tests, 100% pass)
 - **[Implementation Complete](doc/IMPLEMENTATION-COMPLETE.md)**: Final implementation summary
 - **[Strategy Summary](doc/strategy-implementation-summary.md)**: Quick reference
 
