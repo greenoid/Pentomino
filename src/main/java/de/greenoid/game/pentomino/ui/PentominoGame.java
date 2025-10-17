@@ -5,10 +5,7 @@ import de.greenoid.game.pentomino.model.PentominoPiece;
 import de.greenoid.game.pentomino.model.ComputerStrategy;
 import de.greenoid.game.pentomino.model.ComputerStrategyRandom;
 import de.greenoid.game.pentomino.model.ComputerStrategyOpenSpace;
-import de.greenoid.game.pentomino.model.ComputerStrategyMinMax;
-import de.greenoid.game.pentomino.model.ComputerStrategyMinMaxDiffusion;
-import de.greenoid.game.pentomino.model.ComputerStrategyComposite;
-import de.greenoid.game.pentomino.model.ComputerStrategyMinMaxDynamic;
+import de.greenoid.game.pentomino.model.ComputerStrategyMinMaxProportional;
 
 import javax.swing.*;
 import java.awt.*;
@@ -50,12 +47,12 @@ public class PentominoGame extends JFrame {
 
     private void initializeGame() {
         gameState = new GameState();
-        // Default to MinMax Dynamic Strategy (best overall performance with adaptive depth)
-        computerStrategy = new ComputerStrategyMinMaxDynamic();
+        // Default to MinMax Proportional Hard (best performance with smooth progression)
+        computerStrategy = new ComputerStrategyMinMaxProportional(1.0f);
         
         if (computerOnlyMode) {
             // In computer-only mode, player 1 also uses a strategy
-            player1Strategy = new ComputerStrategyMinMaxDynamic();
+            player1Strategy = new ComputerStrategyMinMaxProportional(1.0f);
         }
     }
 
@@ -111,11 +108,9 @@ public class PentominoGame extends JFrame {
         // Add strategy selector
         panel.add(new JLabel("AI Strategy:"));
         strategySelector = new JComboBox<>(new String[]{
-            "MinMax Dynamic (Recommended)",
-            "MinMax Diffusion (Experimental)",
-            "Composite Strategy",
-            "MinMax Only (Depth 2 - Fast)",
-            "MinMax Only (Depth 3 - Strong)",
+            "MinMax Proportional - Hard (Strength 1.0)",
+            "MinMax Proportional - Fair (Strength 1.5)",
+            "MinMax Proportional - Easy (Strength 2.0)",
             "Open Space (Medium - 3 iterations)",
             "Random Strategy"
         });
@@ -214,26 +209,27 @@ public class PentominoGame extends JFrame {
             // Only create new strategy if it's different from current type
             boolean needsNewStrategy = true;
             
-            if (selected.contains("MinMax Dynamic") &&
-                computerStrategy instanceof ComputerStrategyMinMaxDynamic) {
-                needsNewStrategy = false; // Keep same instance
-            } else if (selected.startsWith("Composite") &&
-                       computerStrategy instanceof ComputerStrategyComposite) {
-                needsNewStrategy = false; // Keep same instance
+            if (selected.contains("Proportional") &&
+                computerStrategy instanceof ComputerStrategyMinMaxProportional) {
+                // Check if it's the same strength
+                ComputerStrategyMinMaxProportional current = (ComputerStrategyMinMaxProportional) computerStrategy;
+                float newStrength = 1.0f;
+                if (selected.contains("Fair")) newStrength = 1.5f;
+                else if (selected.contains("Easy")) newStrength = 2.0f;
+                
+                if (Math.abs(current.getStrengthFactor() - newStrength) < 0.01f) {
+                    needsNewStrategy = false; // Keep same instance
+                }
             }
             
             if (needsNewStrategy) {
-                if (selected.contains("MinMax Dynamic")) {
-                    computerStrategy = new ComputerStrategyMinMaxDynamic();
-                } else if (selected.contains("MinMax Diffusion")) {
-                    computerStrategy = new ComputerStrategyMinMaxDiffusion();
-                } else if (selected.startsWith("Composite")) {
-                    computerStrategy = new ComputerStrategyComposite();
-                } else if (selected.contains("MinMax") && selected.contains("Depth 2")) {
-                    computerStrategy = new ComputerStrategyMinMax(2);
-                } else if (selected.contains("MinMax") && selected.contains("Depth 3")) {
-                    computerStrategy = new ComputerStrategyMinMax(3);
-                } else if (selected.contains("Medium")) {
+                if (selected.contains("Proportional - Hard")) {
+                    computerStrategy = new ComputerStrategyMinMaxProportional(1.0f);
+                } else if (selected.contains("Proportional - Fair")) {
+                    computerStrategy = new ComputerStrategyMinMaxProportional(1.5f);
+                } else if (selected.contains("Proportional - Easy")) {
+                    computerStrategy = new ComputerStrategyMinMaxProportional(2.0f);
+                } else if (selected.contains("Open Space")) {
                     computerStrategy = new ComputerStrategyOpenSpace(3);
                 } else if (selected.startsWith("Random")) {
                     computerStrategy = new ComputerStrategyRandom();

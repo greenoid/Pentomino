@@ -2,6 +2,7 @@ package de.greenoid.game.pentomino.model;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 import java.util.concurrent.*;
 
 /**
@@ -23,6 +24,8 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
     private long startTime;
     private static final int MAX_THINKING_TIME_MS = 15000; // 15 seconds safety limit
     private final ExecutorService executorService;
+    private final Random random;
+    private static final int SCORE_TOLERANCE = 5; // Moves within this score are considered equivalent
 
     /**
      * Creates a new MinMax strategy with the specified search depth.
@@ -36,6 +39,7 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
     public ComputerStrategyMinMax(int maxDepth) {
         this.maxDepth = Math.max(1, Math.min(maxDepth, 5));
         this.executorService = Executors.newFixedThreadPool(Runtime.getRuntime().availableProcessors());
+        this.random = new Random();
     }
 
     /**
@@ -64,6 +68,7 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
 
         ComputerMove bestMove = null;
         int bestScore = Integer.MIN_VALUE;
+        List<ComputerMove> bestMoves = new ArrayList<>();
 
         System.out.println("MinMax: Evaluating " + possibleMoves.size() +
                           " possible moves at depth " + maxDepth +
@@ -96,9 +101,27 @@ public class ComputerStrategyMinMax implements ComputerStrategy {
                 ComputerMove move = possibleMoves.get(i);
                 int score = futures.get(i).get();
 
-                if (score > bestScore) {
+                // Collect all moves with the best score (or within tolerance)
+                if (score > bestScore + SCORE_TOLERANCE) {
+                    // Found a clearly better move
                     bestScore = score;
-                    bestMove = move;
+                    bestMoves.clear();
+                    bestMoves.add(move);
+                } else if (Math.abs(score - bestScore) <= SCORE_TOLERANCE) {
+                    // Found a move with equivalent score
+                    bestMoves.add(move);
+                }
+            }
+            
+            // Randomly select from moves with equivalent scores
+            if (!bestMoves.isEmpty()) {
+                if (bestMoves.size() > 1) {
+                    int randomIndex = random.nextInt(bestMoves.size());
+                    bestMove = bestMoves.get(randomIndex);
+                    System.out.println("MinMax: Selected randomly from " + bestMoves.size() +
+                                     " equivalent moves (score: " + bestScore + ")");
+                } else {
+                    bestMove = bestMoves.get(0);
                 }
             }
         } catch (InterruptedException | ExecutionException e) {
