@@ -1,0 +1,81 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+    
+    - name: Set up JDK 11
+      uses: actions/setup-java@v4
+      with:
+        java-version: '11'
+        distribution: 'temurin'
+        cache: maven
+    
+    - name: Extract version from tag
+      id: version
+      run: |
+        VERSION=${GITHUB_REF#refs/tags/v}
+        echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+        echo "Releasing version: $VERSION"
+    
+    - name: Update pom.xml version
+      run: |
+        mvn versions:set -DnewVersion=${{ steps.version.outputs.VERSION }}
+        mvn versions:commit
+    
+    - name: Build release artifacts
+      run: mvn clean package -DskipTests
+    
+    - name: Create GitHub Release
+      uses: softprops/action-gh-release@v1
+      with:
+        files: |
+          target/Pentomino-*.jar
+        body: |
+          ## Pentomino Game Release ${{ steps.version.outputs.VERSION }}
+          
+          ### Download and Run
+          Download the JAR file and run the game:
+          ```bash
+          java -jar Pentomino-${{ steps.version.outputs.VERSION }}.jar
+          ```
+          
+          Or run with the jar-with-dependencies version:
+          ```bash
+          java -jar Pentomino-${{ steps.version.outputs.VERSION }}-jar-with-dependencies.jar
+          ```
+          
+          ### Requirements
+          - Java 11 or higher
+          
+          ### Game Features
+          - Multiple AI strategies (Random, MinMax, MinMax-Proportional, Open Space)
+          - Interactive gameplay
+          - Strategy testing and comparison
+          
+          ### Changes in this Release
+          See commit history for details.
+        draft: false
+        prerelease: false
+        generate_release_notes: true
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    
+    - name: Upload release artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: release-artifacts-${{ steps.version.outputs.VERSION }}
+        path: target/*.jar
+        retention-days: 30
