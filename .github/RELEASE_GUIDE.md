@@ -4,9 +4,10 @@ This document explains how to use the GitHub release pipeline for the Pentomino 
 
 ## Overview
 
-The project includes two GitHub Actions workflows:
+The project includes three GitHub Actions workflows:
 1. **CI Build** (`.github/workflows/ci.yml`) - Runs on every push and pull request
-2. **Release** (`.github/workflows/release.yml`) - Creates releases when tags are pushed
+2. **Maven Release** (`.github/workflows/maven-release.yml`) - **RECOMMENDED** Automated release using Maven Release Plugin
+3. **Manual Release** (`.github/workflows/release.yml`) - Manual release when tags are pushed
 
 ## Automatic CI Build
 
@@ -22,9 +23,63 @@ The CI workflow automatically runs when:
 - Packages the application
 - Uploads build artifacts (available for 7 days)
 
-## Creating a Release
+## Creating a Release (Automated - RECOMMENDED)
 
-### Step 1: Update Version
+### Using Maven Release Workflow (Fully Automated)
+
+This is the **recommended approach** as it automatically handles:
+- ✓ Version updates (SNAPSHOT → Release → Next SNAPSHOT)
+- ✓ Git commits and tagging
+- ✓ Building release artifacts
+- ✓ Creating GitHub Release
+- ✓ No manual `pom.xml` editing required
+
+#### Steps:
+
+1. **Go to GitHub Actions tab** in your repository
+2. **Select "Maven Release" workflow** from the left sidebar
+3. **Click "Run workflow"** button (top right)
+4. **Optional: Specify versions** or leave empty for automatic calculation
+   - Release version: e.g., `1.2.0` (defaults to removing -SNAPSHOT)
+   - Next version: e.g., `1.3.0` (defaults to incrementing minor version)
+5. **Click "Run workflow"** green button
+6. **Monitor progress** in the Actions tab
+
+The workflow automatically:
+1. Removes `-SNAPSHOT` from current version → Release version
+2. Commits and tags the release
+3. Builds release artifacts (both JARs)
+4. Pushes the release tag
+5. Updates to next SNAPSHOT version (e.g., `1.3.0-SNAPSHOT`)
+6. Commits and pushes the next development version
+7. Creates GitHub Release with artifacts
+
+**Example:**
+- Current: `1.1.0-SNAPSHOT`
+- Workflow creates: `1.1.0` → tags as `v1.1.0`
+- Updates to: `1.2.0-SNAPSHOT`
+
+### Command Line Alternative (Advanced)
+
+If you prefer command line with Maven Release Plugin:
+
+```bash
+# Configure Git (if not already configured)
+git config user.name "Your Name"
+git config user.email "your.email@example.com"
+
+# Run Maven release
+mvn release:prepare release:perform
+
+# The plugin will prompt for:
+# - Release version (default: removes -SNAPSHOT)
+# - SCM tag (default: v{version})
+# - Next development version (default: increments minor)
+```
+
+## Creating a Manual Release (Legacy Method)
+
+### Step 1: Update Version (Manual)
 
 First, update the version in `pom.xml`:
 
@@ -90,6 +145,15 @@ Follow [Semantic Versioning](https://semver.org/) (SemVer):
 - `1.1.0` - Added new AI strategy
 - `1.1.1` - Fixed bug in MinMax algorithm
 - `2.0.0` - Changed game board API (breaking change)
+
+## Which Release Method to Use?
+
+| Method | Best For | Pros | Cons |
+|--------|----------|------|------|
+| **Maven Release (Automated)** | Most releases | Fully automated, no manual steps, prevents errors | Requires GitHub UI or workflow_dispatch |
+| **Manual Tag-based** | Quick hotfixes | Simple, fast for small changes | Requires manual pom.xml updates, error-prone |
+
+**Recommendation:** Use Maven Release workflow for all standard releases.
 
 ## Development Workflow
 
