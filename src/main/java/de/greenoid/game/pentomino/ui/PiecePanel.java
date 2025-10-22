@@ -18,7 +18,6 @@ public class PiecePanel extends JPanel {
 
     private GameState gameState;
     private PentominoPiece selectedPiece;
-    private boolean isDarkMode = false;
 
     public PiecePanel(GameState gameState) {
         this.gameState = gameState;
@@ -30,25 +29,8 @@ public class PiecePanel extends JPanel {
 
     private void setupPanel() {
         setPreferredSize(new Dimension(280, 650));
-        setBackground(new Color(250, 250, 250));
+        // Let FlatLaf handle the background color
         setBorder(BorderFactory.createTitledBorder("Available Pieces"));
-    }
-    
-    /**
-     * Set dark mode for the piece panel.
-     */
-    public void setDarkMode(boolean darkMode) {
-        this.isDarkMode = darkMode;
-        if (darkMode) {
-            setBackground(new Color(30, 30, 30));
-            setBorder(BorderFactory.createTitledBorder(
-                BorderFactory.createLineBorder(new Color(80, 80, 80)),
-                "Available Pieces",
-                0, 0, null, Color.LIGHT_GRAY));
-        } else {
-            setBackground(new Color(250, 250, 250));
-            setBorder(BorderFactory.createTitledBorder("Available Pieces"));
-        }
     }
 
     private void setupMouseListener() {
@@ -263,7 +245,7 @@ public class PiecePanel extends JPanel {
         int offsetY = (PIECE_DISPLAY_SIZE - pieceHeight) / 2;
         
         // Draw selection outline with appropriate color
-        Color outlineColor = isSelected ? new Color(255, 60, 60) : (isDarkMode ? new Color(80, 80, 80) : Color.GRAY);
+        Color outlineColor = isSelected ? new Color(255, 60, 60) : UIManager.getColor("Component.borderColor");
         g2d.setColor(outlineColor);
         g2d.setStroke(new BasicStroke(isSelected ? 3 : 1));
         g2d.drawRect(x - 3, y - 3, PIECE_DISPLAY_SIZE + 6, PIECE_DISPLAY_SIZE + 6);
@@ -278,12 +260,12 @@ public class PiecePanel extends JPanel {
             drawGradientSquare(g2d, squareX, squareY, CELL_SIZE, piece.getColor());
 
             // Draw border
-            g2d.setColor(isDarkMode ? new Color(60, 60, 60) : Color.BLACK);
+            g2d.setColor(UIManager.getColor("Component.borderColor"));
             g2d.drawRect(squareX, squareY, CELL_SIZE, CELL_SIZE);
         }
         
         // Draw piece letter INSIDE the box at bottom center
-        g2d.setColor(isDarkMode ? Color.LIGHT_GRAY : Color.DARK_GRAY);
+        g2d.setColor(UIManager.getColor("Label.foreground"));
         Font font = new Font(Font.SANS_SERIF, Font.BOLD, 10);
         g2d.setFont(font);
 
@@ -329,7 +311,7 @@ public class PiecePanel extends JPanel {
     }
 
     private void drawNoPiecesMessage(Graphics2D g2d) {
-        g2d.setColor(isDarkMode ? Color.LIGHT_GRAY : Color.GRAY);
+        g2d.setColor(UIManager.getColor("Label.disabledForeground"));
         Font font = new Font(Font.SANS_SERIF, Font.ITALIC, 14);
         g2d.setFont(font);
 

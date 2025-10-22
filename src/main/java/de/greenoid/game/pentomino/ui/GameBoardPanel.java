@@ -23,7 +23,6 @@ public class GameBoardPanel extends JPanel {
     private PentominoPiece selectedPiece;
     private PentominoPiece previewPiece;
     private Point previewPosition;
-    private boolean isDarkMode = false;
 
     public GameBoardPanel(GameState gameState) {
         this.gameState = gameState;
@@ -38,22 +37,8 @@ public class GameBoardPanel extends JPanel {
 
     private void setupPanel() {
         setPreferredSize(new Dimension(BOARD_SIZE, BOARD_SIZE));
-        setBackground(new Color(240, 240, 240));
-        setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
-    }
-    
-    /**
-     * Set dark mode for the board panel.
-     */
-    public void setDarkMode(boolean darkMode) {
-        this.isDarkMode = darkMode;
-        if (darkMode) {
-            setBackground(new Color(20, 20, 20));
-            setBorder(BorderFactory.createLineBorder(new Color(80, 80, 80), 2));
-        } else {
-            setBackground(new Color(240, 240, 240));
-            setBorder(BorderFactory.createLineBorder(Color.BLACK, 2));
-        }
+        // Let FlatLaf handle the background color
+        setBorder(BorderFactory.createLineBorder(UIManager.getColor("Component.borderColor"), 2));
     }
 
     private void setupMouseListener() {
@@ -229,7 +214,8 @@ public class GameBoardPanel extends JPanel {
     }
 
     private void drawGrid(Graphics2D g2d) {
-        g2d.setColor(isDarkMode ? new Color(60, 60, 60) : Color.BLACK);
+        // Use theme-aware grid color
+        g2d.setColor(UIManager.getColor("Component.borderColor"));
 
         // Draw vertical lines
         for (int i = 0; i <= Board.SIZE; i++) {
@@ -266,7 +252,7 @@ public class GameBoardPanel extends JPanel {
         drawGradientSquare(g2d, x, y, size, piece.getColor());
 
         // Draw border
-        g2d.setColor(isDarkMode ? new Color(60, 60, 60) : Color.BLACK);
+        g2d.setColor(UIManager.getColor("Component.borderColor"));
         g2d.drawRect(x, y, size, size);
 
         // Draw piece letter

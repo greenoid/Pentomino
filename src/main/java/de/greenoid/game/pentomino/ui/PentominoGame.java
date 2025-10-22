@@ -7,6 +7,11 @@ import de.greenoid.game.pentomino.model.ComputerStrategyRandom;
 import de.greenoid.game.pentomino.model.ComputerStrategyOpenSpace;
 import de.greenoid.game.pentomino.model.ComputerStrategyMinMaxProportional;
 
+import com.formdev.flatlaf.FlatDarkLaf;
+import com.formdev.flatlaf.FlatLightLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
+import com.formdev.flatlaf.FlatDarculaLaf;
+
 import javax.swing.*;
 import java.awt.*;
 
@@ -21,10 +26,9 @@ public class PentominoGame extends JFrame {
     private JLabel currentPlayerLabel;
     private JButton newGameButton;
     private JComboBox<String> strategySelector;
-    private JCheckBox darkModeToggle;
+    private JComboBox<String> themeSelector;
     private ComputerStrategy computerStrategy;
     private ComputerStrategy player1Strategy; // For computer-only mode
-    private boolean isDarkMode = true;
     private boolean computerOnlyMode = false;
     private boolean isInitializing = true; // Flag to prevent strategy recreation during setup
 
@@ -68,10 +72,6 @@ public class PentominoGame extends JFrame {
         // Create main panels
         gameBoardPanel = new GameBoardPanel(gameState);
         piecePanel = new PiecePanel(gameState);
-        
-        // Set dark mode as default
-        gameBoardPanel.setDarkMode(true);
-        piecePanel.setDarkMode(true);
 
         // Create control panel
         JPanel controlPanel = createControlPanel();
@@ -84,9 +84,6 @@ public class PentominoGame extends JFrame {
         add(piecePanel, BorderLayout.EAST);
         add(controlPanel, BorderLayout.SOUTH);
         add(infoPanel, BorderLayout.NORTH);
-        
-        // Apply dark mode theme
-        updateTheme();
 
         // Set window properties
         pack();
@@ -100,10 +97,17 @@ public class PentominoGame extends JFrame {
         newGameButton = new JButton("New Game");
         JButton quitButton = new JButton("Quit Game");
         
-        // Add dark mode toggle (selected by default)
-        darkModeToggle = new JCheckBox("Dark Mode", true);
-        darkModeToggle.addActionListener(e -> toggleDarkMode());
-        panel.add(darkModeToggle);
+        // Add theme selector with all FlatLaf themes
+        panel.add(new JLabel("Theme:"));
+        themeSelector = new JComboBox<>(new String[]{
+            "Light",
+            "Dark",
+            "IntelliJ",
+            "Darcula"
+        });
+        themeSelector.setSelectedItem("Dark"); // Default to Dark theme
+        themeSelector.addActionListener(e -> changeTheme());
+        panel.add(themeSelector);
 
         // Add strategy selector
         panel.add(new JLabel("AI Strategy:"));
@@ -171,25 +175,40 @@ public class PentominoGame extends JFrame {
     }
     
     /**
-     * Toggle between light and dark mode.
+     * Change theme based on the selected option.
      */
-    private void toggleDarkMode() {
-        isDarkMode = darkModeToggle.isSelected();
-        gameBoardPanel.setDarkMode(isDarkMode);
-        piecePanel.setDarkMode(isDarkMode);
-        updateTheme();
-        gameBoardPanel.repaint();
-        piecePanel.repaint();
-    }
-    
-    /**
-     * Update the theme colors for dark mode.
-     */
-    private void updateTheme() {
-        if (isDarkMode) {
-            getContentPane().setBackground(new Color(30, 30, 30));
-        } else {
-            getContentPane().setBackground(Color.WHITE);
+    private void changeTheme() {
+        String selectedTheme = (String) themeSelector.getSelectedItem();
+        if (selectedTheme == null) {
+            return;
+        }
+        
+        try {
+            switch (selectedTheme) {
+                case "Light":
+                    UIManager.setLookAndFeel(new FlatLightLaf());
+                    break;
+                case "Dark":
+                    UIManager.setLookAndFeel(new FlatDarkLaf());
+                    break;
+                case "IntelliJ":
+                    UIManager.setLookAndFeel(new FlatIntelliJLaf());
+                    break;
+                case "Darcula":
+                    UIManager.setLookAndFeel(new FlatDarculaLaf());
+                    break;
+                default:
+                    UIManager.setLookAndFeel(new FlatDarkLaf());
+            }
+            SwingUtilities.updateComponentTreeUI(this);
+            // Ensure window is repacked to adjust to new theme
+            pack();
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            JOptionPane.showMessageDialog(this,
+                "Failed to change theme: " + ex.getMessage(),
+                "Theme Error",
+                JOptionPane.ERROR_MESSAGE);
         }
     }
 
@@ -424,6 +443,14 @@ public class PentominoGame extends JFrame {
     }
 
     public static void main(String[] args) {
+        // Initialize FlatLaf dark theme as default
+        try {
+            UIManager.setLookAndFeel(new FlatDarkLaf());
+        } catch (Exception e) {
+            System.err.println("Failed to initialize FlatLaf theme: " + e.getMessage());
+            // Fall back to system default if FlatLaf fails
+        }
+        
         // Check for -computeronly flag
         boolean computerOnlyMode = false;
         for (String arg : args) {
